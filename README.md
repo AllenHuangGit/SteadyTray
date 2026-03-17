@@ -1,8 +1,8 @@
 <div align="center">
 
-# SteadyTray
+<img src="logo.png" alt="SteadyTray" width="400">
 
-### Learning Object Balancing Tasks in Humanoid Tray Transport via Residual Reinforcement Learning
+### SteadyTray: Learning Object Balancing Tasks in Humanoid Tray Transport via Residual Reinforcement Learning
 
 **UC San Diego**
 
