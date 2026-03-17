@@ -69,8 +69,8 @@ datasets
 # Deploy
 *.pt
 *.onnx
-*.obj
-*.mtl
+# *.obj
+# *.mtl
 # *.STL
 # *.stl
 **/env.yaml
