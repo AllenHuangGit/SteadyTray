@@ -30,23 +30,36 @@ git clone https://github.com/AllenHuangGit/IsaacLab.git
 git clone https://github.com/AllenHuangGit/steadytray.git
 ```
 
-### 2. Build the Isaac Lab Docker Image
+### 2. Build and Launch the Isaac Lab Docker Container
 
-Follow the [Isaac Lab Docker guide](https://isaac-sim.github.io/IsaacLab/main/source/deployment/docker.html) to build the Docker image from our IsaacLab fork:
+Follow the [Isaac Lab Docker guide](https://isaac-sim.github.io/IsaacLab/main/source/deployment/docker.html) to build the Docker image from our IsaacLab fork, then launch the container with the SteadyTray repository mounted.
+
+**Option A:** Uncomment the mount lines in [`docker/docker-compose.yaml` (L68–L71)](https://github.com/AllenHuangGit/IsaacLab/blob/main/docker/docker-compose.yaml#L68-L71) and update the source path to your local SteadyTray directory:
+
+```yaml
+    # * The following is used to mount our extension codebase
+  - type: bind
+    source: /path/to/steadytray     #* Change this to the path of your local extension codebase
+    target: /workspace/steadytray
+```
+
+Then use the standard IsaacLab Docker commands:
 
 ```bash
 cd IsaacLab/docker
 ./container.py start
 ```
 
-### 3. Launch the Container and Mount SteadyTray
-
-Start the Docker container and mount the SteadyTray repository into the workspace:
+**Option B:** Mount the volume directly via the command line:
 
 ```bash
-docker run -it --gpus all \
+cd IsaacLab/docker
+# Build the Docker image
+docker compose --env-file .env.base --profile base build isaac-lab-base
+# Launch the container with SteadyTray mounted
+docker compose --env-file .env.base --profile base run --rm \
     -v /path/to/steadytray:/workspace/steadytray \
-    <isaac_lab_image>
+    isaac-lab-base bash
 ```
 
 ### 4. Install SteadyTray
@@ -56,14 +69,10 @@ Inside the container, install the package in editable mode:
 ```bash
 cd /workspace/steadytray
 python -m pip install -e source/steadytray
-```
 
-### 4. Verify Installation
-
-List the available tasks:
-
-```bash
-python scripts/list_envs.py
+# Install git-lfs and tmux
+apt-get update && apt-get install -y git-lfs
+apt update && apt install -y tmux
 ```
 
 ## Training

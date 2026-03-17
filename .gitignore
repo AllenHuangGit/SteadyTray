@@ -71,8 +71,8 @@ datasets
 *.onnx
 *.obj
 *.mtl
-*.STL
-*.stl
+# *.STL
+# *.stl
 **/env.yaml
 *.png
 *.jpg
