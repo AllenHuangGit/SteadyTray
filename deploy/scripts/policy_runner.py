@@ -6,6 +6,22 @@ import torch
 from typing import Tuple, Optional
 from scripts.config import Config
 
+def get_encoder_obs_dim(num_actions: int, object_obs_size: int = 6) -> int:
+    """
+    Get the dimension of student encoder observations.
+    
+    Args:
+        num_actions: Number of actions (29 for G1)
+        object_obs_size: Size of object observations (default: 6 for pos+rpy)
+        
+    Returns:
+        Total encoder observation dimension: 96 + object_obs_size
+    """
+    base_obs_dim = 3 + 3 + 3 + num_actions + num_actions + num_actions  # 96 for G1
+    return base_obs_dim + object_obs_size
+
+
+# Helper function to compute gravity orientation from quaternion
 def get_gravity_orientation(quaternion):
     qw = quaternion[0]
     qx = quaternion[1]
@@ -153,11 +169,16 @@ def compute_policy_action(
         cmd: Command values (3,) - typically [vel_x, vel_y, yaw_rate]
         previous_action: Previous action in robot order (num_actions,)
         config: Configuration object with necessary parameters
-        object_obs: Optional object observations for distillation policies (7,)
-                   Format: [pos(3), quat(4)] = position + quaternion
+        object_obs: Optional object observations for distillation policies 
+                   Flexible size with first 3 dims as position, rest varies:
+                   - [pos(3), projected_gravity(3)] = 6 dims (default, no orientation)
+                   - [pos(3), quat(4)] = 7 dims (position + quaternion)
+                   - [pos(3), rot6d(6)] = 9 dims (position + 6D rotation)
+                   - [pos(3), rotmat(9)] = 12 dims (position + rotation matrix)
         policy_type: Optional policy type ("standard" or "distillation"). If None, auto-detect.
         encoder_frame_stack: Optional deque with maxlen=32 for encoder observation history
-                           Required for distillation policies.
+                           Required for distillation policies. Encoder obs size will be
+                           96 + object_obs_size (default: 96 + 6 = 102 dims per timestep).
         
     Returns:
         action_robot: Action in robot order (num_actions,)
@@ -265,9 +286,14 @@ def build_student_encoder_obs(
     - joint_vel_rel (29)
     - last_action (29)
     - object_pos_cam (3) - object position
-    - object_quat_cam (4) - object quaternion
+    - object_data_cam (variable) - object data in various formats:
+      * 3 dims: projected_gravity (default 6D format)
+      * 4 dims: quaternion (7D format)
+      * 6 dims: 6D rotation (9D format)
+      * 9 dims: rotation matrix (12D format)
     
-    Total: 96 + 7 = 103 dimensions per timestep.
+    Total: 96 + object_obs_size dimensions per timestep.
+    Default object_obs_size = 6 (pos + projected_gravity) gives 102 total dimensions.
     
     Args:
         omega: Angular velocity (3,) - normalized (corresponds to base_ang_vel)
@@ -278,13 +304,19 @@ def build_student_encoder_obs(
         action: Previous action (num_actions,) - policy order (corresponds to last_action)
         cmd_scale: Scale factors for commands (3,)
         num_actions: Number of actions (29 for G1)
-        object_obs: Object observations (7,)
-                   Format: [pos(3), quat(4)] = position + quaternion
-                   Must be provided for distillation policies.
+        object_obs: Optional object observations with flexible size
+                   - First 3 elements: object position [x, y, z]
+                   - Remaining elements: varies by format
+                   - Common formats:
+                     * 6D: [pos(3), projected_gravity(3)] = 6 dims (default, no orientation)
+                     * 7D: [pos(3), quat(4)] = 7 dims (position + quaternion)
+                     * 9D: [pos(3), rot6d(6)] = 9 dims (position + 6D rotation)
+                     * 12D: [pos(3), rotmat(9)] = 12 dims (position + rotation matrix)
+                   If not provided, must raise error for distillation policies.
         
     Returns:
         student_encoder_obs: Student encoder observations for one timestep
-                            Shape: (103,) = 96 base + 7 object
+                            Shape: (obs_dim,) where obs_dim = 96 + object_obs_size
     """
     # Base proprioceptive observations: omega(3) + gravity(3) + cmd(3) + qj(29) + dqj(29) + action(29) = 96
     base_obs_dim = 3 + 3 + 3 + num_actions + num_actions + num_actions
@@ -334,12 +366,16 @@ def build_student_encoder_obs(
     student_obs[idx:idx+num_actions] = action
     idx += num_actions
     
-    # object_pos_cam (first 3 dims) + object_quat_cam (remaining 4 dims)
+    # object_pos_cam (first 3 dims of object_obs)
     student_obs[idx:idx+3] = object_data[:3]
     idx += 3
     
-    student_obs[idx:idx+4] = object_data[3:7]
-    idx += 4
+    # object_data_cam (remaining dims of object_obs)
+    # This can be projected_gravity (3), quaternion (4), rot6d (6), or rotmat (9)
+    data_size = object_obs_size - 3
+    if data_size > 0:
+        student_obs[idx:idx+data_size] = object_data[3:3+data_size]
+        idx += data_size
     
     return student_obs
 

@@ -10,11 +10,11 @@
 
 </div>
 
-This is the official code release for **SteadyTray**. The repository contains the training pipeline and sim2sim deployment code.
+This is the official code release for **SteadyTray**. The repository contains the training pipeline, sim2sim (MuJoCo) deployment, and sim2real deployment code for the Unitree G1.
 
 ## Overview
 
-This project provides reinforcement learning environments for training steady-tray tasks on Unitree robots, built on top of a custom fork of [IsaacLab](https://github.com/AllenHuangGit/IsaacLab_SteadyTray.git). The training pipeline uses PPO via RSL-RL and supports multi-GPU distributed training. Trained policies can be deployed in MuJoCo for sim2sim validation.
+This project provides reinforcement learning environments for training steady-tray tasks on Unitree robots, built on top of a custom fork of [IsaacLab](https://github.com/AllenHuangGit/IsaacLab_SteadyTray.git). The training pipeline uses PPO via RSL-RL and supports multi-GPU distributed training. Trained policies can be validated in MuJoCo (sim2sim) and deployed on the physical robot (sim2real).
 
 ## Installation
 
@@ -194,12 +194,26 @@ conda activate g1_deploy
 python deploy_mujoco.py --policy exported/policy_9999.pt --config deploy/configs/g1_29dof_walk.yaml
 ```
 
+## Sim2Real Deployment
+
+The real-robot deployment runs the exported policy on the Unitree G1 through `unitree_sdk2py`, with a torso-mounted RealSense camera tracking an AprilTag on the object. See [deploy/deploy_real/README.md](deploy/deploy_real/README.md) for the hardware setup, installation, and startup procedure.
+
+Quick start (from the repository root, robot hanging from a gantry):
+
+```bash
+conda env create -f deploy/deploy_real/environment.yml
+conda activate g1_deploy_real
+
+python deploy/deploy_real/deploy_real.py --net <NET_INTERFACE> --policy exported/policy_9999.pt --config deploy/configs/g1_29dof_walk.yaml
+```
+
 ## Acknowledgements
 
 This codebase is built upon the following awesome open-source projects:
 
 - [unitree_rl_lab](https://github.com/unitreerobotics/unitree_rl_lab): RL training framework for Unitree robots on IsaacLab.
 - [g1_deploy_mujoco](https://github.com/RoboCubPilot/g1_deploy_mujoco): Lightweight MuJoCo deployment for G1 policies.
+- [unitree_rl_gym](https://github.com/unitreerobotics/unitree_rl_gym) and [unitree_sdk2_python](https://github.com/unitreerobotics/unitree_sdk2_python): Real-robot deployment and low-level control of Unitree robots.
 - [IsaacLab](https://github.com/isaac-sim/IsaacLab): Foundation for training and simulation.
 
 ## Citation

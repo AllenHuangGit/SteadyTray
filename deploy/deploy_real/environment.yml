@@ -1,0 +1,15 @@
+name: g1_deploy_real
+dependencies:
+  - python=3.11
+  - pip
+  - cmake  # needed to build the apriltag package
+  - pip:
+      - torch==2.7.0
+      - numpy
+      - pyyaml
+      - scipy
+      - opencv-python
+      - pyrealsense2
+      - apriltag
+      # unitree_sdk2py (and cyclonedds) are installed separately,
+      # see deploy/deploy_real/README.md

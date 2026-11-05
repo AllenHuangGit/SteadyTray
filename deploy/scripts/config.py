@@ -86,6 +86,17 @@ class Config:
                 self.imu_type = config["imu_type"]
             else:
                 self.imu_type = "pelvis"  # default
+
+            # RealSense / AprilTag configuration (optional, for real robot)
+            # Keys match the AprilTagDetector constructor arguments.
+            camera_keys = ("tag_size", "families", "tag_id", "resolution", "fps")
+            camera_cfg = config.get("camera") or {}
+            unknown = set(camera_cfg) - set(camera_keys)
+            if unknown:
+                raise ValueError(f"Unknown camera config keys: {sorted(unknown)}; expected {camera_keys}")
+            self.camera = {k: camera_cfg[k] for k in camera_keys if k in camera_cfg}
+            if "resolution" in self.camera:
+                self.camera["resolution"] = tuple(self.camera["resolution"])
     
     def __repr__(self) -> str:
         """String representation of the config."""

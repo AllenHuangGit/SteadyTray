@@ -76,6 +76,14 @@ xml_to_policy: [0, 6, 12, 1, 7, 13, 2, 8, 14, 3, 9, 15, 22, 4, 10, 16, 23, 5, 11
 lowcmd_topic: "rt/lowcmd"
 lowstate_topic: "rt/lowstate"
 
+# RealSense + AprilTag object tracking (real robot only)
+camera:
+  families: "tag16h5"     # AprilTag family
+  tag_id: 0               # ID of the tag attached to the object
+  tag_size: 0.05          # Tag edge length in meters
+  resolution: [640, 480]  # Color stream resolution
+  fps: 30                 # Color stream frame rate
+
 vel_x_cmd: [-0.3, 0.5]
 vel_y_cmd: [-0.4, 0.4]
 yaw_cmd: [-0.4, 0.4]
